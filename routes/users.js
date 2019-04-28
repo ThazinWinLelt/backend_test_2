@@ -105,7 +105,7 @@ router.post("/register", (req, res) => {
   }
 
   const tagObj = {
-    login: req.body.password,
+    login: req.body.firstname + "." + req.body.lastname + "." + rdm,
     tagname: skill
   };
 
@@ -265,6 +265,8 @@ router.post("/edit", async (req, res) => {
   }
 
   async function start() {
+    console.log(userObj);
+    console.log(tagObj);
     try {
       transaction.update("User", user._id, userObj);
       transaction.update("Tag", tag._id, tagObj);
