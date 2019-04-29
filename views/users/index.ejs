@@ -1,7 +1,27 @@
-<a href="/user/edit" id="edit">Edit</a>
-
-<% if(result.isAdmin == true){%>
-<a href="/user/download" id="download">Download</a>
-<%}%>
-
-<a href="/user/logout" id="logout">Logout</a>
+<center>
+  <div id="form-div">
+    <table id="index-table">
+      <tr>
+        <td>
+          <a href="/user/edit" id="edit"><button type="button">Edit</button></a>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <% if(result.isAdmin == true){%>
+          <a href="/user/download" id="download"
+            ><button type="button">Download</button></a
+          >
+          <%}%>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <a href="/user/logout" id="logout"
+            ><button type="button">Logout</button></a
+          >
+        </td>
+      </tr>
+    </table>
+  </div>
+</center>

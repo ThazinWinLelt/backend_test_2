@@ -2,6 +2,7 @@ const express = require("express");
 const pdf = require("pdfkit"); //download pdf
 const fs = require("fs"); //download pdf
 var path = require("path"); //download pdf
+var mime = require("mime"); //download pdf
 const router = express.Router();
 const User = require("../models/user");
 const Tag = require("../models/tag");
@@ -33,7 +34,9 @@ router.get("/logout", (req, res) => {
 
   var myDoc = new pdf();
 
-  myDoc.pipe(fs.createWriteStream(__dirname + "/../public/download/node.pdf"));
+  myDoc.pipe(
+    fs.createWriteStream(__dirname + "/../public/download/user_information.pdf")
+  );
   myDoc
     .font("Times-Roman")
     .fontSize(12)
@@ -156,31 +159,6 @@ router.post("/login", async (req, res) => {
     keyword.login = login;
     keyword.password = password;
 
-    var skill = {};
-    await Tag.find({}, function(err, res) {
-      if (err) {
-        res.send(err);
-      }
-
-      res.forEach(function(data, index, arr) {
-        skill[data.login] = data.tagname;
-      });
-    });
-
-    await User.find({}, function(error, result) {
-      if (error) {
-        res.send(error);
-      }
-
-      result.forEach(function(data, index, arr) {
-        allUser += "User: #" + (index + 1) + "\n" + pdfFormat(data);
-        allUser += "skill = " + skill[data.login] + "\n";
-        if (result.length - 1 != index) {
-          allUser += "\n\n";
-        }
-      });
-    });
-
     await User.findOne(keyword, function(error, result) {
       if (error) {
         res.send(error);
@@ -189,18 +167,6 @@ router.post("/login", async (req, res) => {
       if (result) {
         req.session.login = result.login;
 
-        if (result.isAdmin == true) {
-          var myDoc = new pdf();
-
-          myDoc.pipe(
-            fs.createWriteStream(__dirname + "/../public/download/node.pdf")
-          );
-          myDoc
-            .font("Times-Roman")
-            .fontSize(12)
-            .text(allUser, 30, 30);
-          myDoc.end();
-        }
         res.render("users/index", {
           result: result
         });
@@ -265,8 +231,6 @@ router.post("/edit", async (req, res) => {
   }
 
   async function start() {
-    console.log(userObj);
-    console.log(tagObj);
     try {
       transaction.update("User", user._id, userObj);
       transaction.update("Tag", tag._id, tagObj);
@@ -277,6 +241,9 @@ router.post("/edit", async (req, res) => {
     } catch (error) {
       await transaction.rollback().catch(console.error);
       transaction.clean();
+
+      userObj.login = req.session.login;
+      msg.push("user edit failed.");
 
       res.render("users/edit", {
         user: userObj,
@@ -291,12 +258,59 @@ router.post("/edit", async (req, res) => {
   }
 });
 
-router.get("/download", (req, res) => {
-  var file = path.join(__dirname, "/../public/download/node.pdf");
-  res.download(file, function(err) {
+router.get("/download", async (req, res) => {
+  var skill = {};
+  await Tag.find({}, function(err, res) {
+    if (err) {
+      res.send(err);
+    }
+    res.forEach(function(data, index, arr) {
+      skill[data.login] = data.tagname;
+    });
+  });
+
+  var allUser = "";
+  await User.find({}, function(error, result) {
+    if (error) {
+      res.send(error);
+    }
+    result.forEach(function(data, index, arr) {
+      allUser += "User: #" + (index + 1) + "\n" + pdfFormat(data);
+      allUser += "skill = " + skill[data.login] + "\n";
+      if (result.length - 1 != index) {
+        allUser += "\n\n";
+      }
+    });
+  });
+
+  var myDoc = new pdf();
+  myDoc.pipe(
+    fs.createWriteStream(__dirname + "/../public/download/user_information.pdf")
+  );
+  myDoc
+    .font("Times-Roman")
+    .fontSize(12)
+    .text(allUser, 30, 30);
+  myDoc.end();
+
+  let filename = "user_information.pdf";
+  let absPath = path.join(__dirname, "/../public/download/", filename);
+  let relPath = path.join("./", filename); // path relative to server root
+
+  fs.writeFile(relPath, "File content", err => {
     if (err) {
       console.log(err);
     }
+    res.download(absPath, err => {
+      if (err) {
+        console.log(err);
+      }
+      fs.unlink(relPath, err => {
+        if (err) {
+          console.log(err);
+        }
+      });
+    });
   });
 });
 
